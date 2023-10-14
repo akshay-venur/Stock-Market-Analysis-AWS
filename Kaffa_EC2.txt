@@ -1,0 +1,93 @@
+Kaffa_EC2
+Amazon Linux 2023 AMI 2023.2.20231002.0 x86_64 HVM kernel-6.1
+T2.MICRO 1 CPU, 1GBB Memory
+
+key_pair_kafka
+key pair - to connect to the EC2 machine from the local machine 
+this will create a .pem file
+
+
+connect to the  EC2 instance using SSH client
+copy the SSH key and run in the CMD where .pem file is present 
+ssh -i "key_pair_kafka.pem" ec2-user@ec2-54-80-243-34.compute-1.amazonaws.com
+
+download Kafka in the Linux EC2 machine
+wget https://downloads.apache.org/kafka/3.5.1/kafka_2.12-3.5.1.tgz
+
+uncompress the file
+tar -xvf kafka_2.12-3.5.1.tgz
+
+install java
+https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.tar.gz
+
+tar -xvf jdk-21_linux-x64_bin.tar.gz
+
+
+Edit the enviroment varibles :
+nano ~/.bashrc
+export JAVA_HOME=/home/ec2-user/jdk-21
+
+
+update the path envirorment varibles:
+export PATH=$JAVA_HOME/bin:$PATH
+
+apply the changes:
+source ~/.bashrc
+
+check the version 
+java --version 
+
+
+ cd kafka_2.12-3.5.1
+
+start the zookeeper
+bin/zookeeper-server-start.sh config/zookeeper.properties
+
+
+Open another window to start kafka
+But first ssh to to your ec2 machine as done above
+
+To increse the memory for the KAFKA server:
+export KAFKA_HEAP_OPTS="-Xmx256M -Xms128M"
+
+cd kafka_2.12-3.5.1
+
+bin/kafka-server-start.sh config/server.properties
+
+the server is running in the Private IP DNS 
+cannot access the this private DNS unless we are on the same network 
+
+Private IP DNS name (IPv4 only) - ip-172-31-34-7.ec2.internal
+
+change this to public IP 
+Public IPv4 address - 54.80.243.34
+
+sudo nano config/server.properties
+change ADVERTISED_LISTENERS to public ip of the EC2 instance
+
+advertised.listeners=PLAINTEXT://54.80.243.34:9092
+
+
+Go to EC2 instace -> security -> security groups -> Edit inbound rules -> 
+to allow the request from local machine to EC2 instance 
+add rule -> all traffic(type) -> Anywhere or my IP (source) -> save rules 
+
+open another terminal 
+
+
+create a topic:
+bin/kafka-topics.sh --create --topic kafka_topic --bootstrap-server 54.80.243.34:9092 --replication-factor 1 --partitions 1
+
+list topics:
+bin/kafka-topics.sh --list --bootstrap-server 54.80.243.34:9092
+
+Start Producer:
+--------------------------
+bin/kafka-console-producer.sh --topic kafka_topic --bootstrap-server 54.80.243.34:9092
+
+
+Start Consumer:
+-------------------------
+
+bin/kafka-console-consumer.sh --topic kafka_topic --bootstrap-server 54.80.243.34:9092
+
